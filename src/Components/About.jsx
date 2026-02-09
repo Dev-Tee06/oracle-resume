@@ -128,7 +128,7 @@ const About = () => {
             variants={item}
             className="text-white/75 text-lg md:text-xl leading-relaxed max-w-3xl mb-14 text-center md:text-left"
           >
-            I’m a creative Artist and video editor who transforms ideas into
+            I’m a Creative Artist and video editor who transforms ideas into
             visually compelling stories. I blend strategy, creativity, and
             modern design tools to craft visuals that elevate brands and leave
             lasting impressions.
