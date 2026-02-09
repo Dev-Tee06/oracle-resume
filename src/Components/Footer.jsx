@@ -28,7 +28,7 @@ export default function Footer() {
               </h2>
             </div>
             <p className="mt-2 text-white/70 text-sm leading-relaxed max-w-sm">
-              Creative Designer & Video Editor crafting visuals and videos that
+              Creative Artist & Video Editor crafting visuals and videos that
               communicate clarity, creativity, and emotion.
             </p>
           </div>

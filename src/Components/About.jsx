@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import premiere from "../assets/skill1.png"; // Skill 1
-import illustrator from "../assets/skill2.png"; // Skill 2
-import photoshop from "../assets/skill3.png"; // Skill 3
+import premiere from "../assets/skill6.png"; // Skill 1
+import illustrator from "../assets/skill4.png"; // Skill 2
+import photoshop from "../assets/skilll5.png"; // Skill 3
 import {
   FaLightbulb,
   FaPencilRuler,
@@ -128,7 +128,7 @@ const About = () => {
             variants={item}
             className="text-white/75 text-lg md:text-xl leading-relaxed max-w-3xl mb-14 text-center md:text-left"
           >
-            I’m a creative designer and video editor who transforms ideas into
+            I’m a creative Artist and video editor who transforms ideas into
             visually compelling stories. I blend strategy, creativity, and
             modern design tools to craft visuals that elevate brands and leave
             lasting impressions.

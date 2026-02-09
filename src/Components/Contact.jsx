@@ -57,7 +57,7 @@ export default function Contact() {
         >
           <FaEnvelope className="text-4xl mb-4 text-gradient from-[#f59e0b] to-[#05d1ed]" />
           <h3 className="text-xl font-semibold mb-2">Email</h3>
-          <p className="text-white/70 text-sm">oraclemind02@example.com</p>
+          <p className="text-white/70 text-sm">deoracle711@gmail.com</p>
         </motion.div>
 
         <motion.div
