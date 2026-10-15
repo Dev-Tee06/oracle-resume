@@ -1,242 +1,257 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  FaPinterest,
-  FaTimes,
-  FaArrowLeft,
-  FaArrowRight,
-} from "react-icons/fa";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { supabase, IS_SUPABASE_CONFIGURED } from '../lib/supabase'
+import { STATIC_PORTFOLIO_PROJECTS } from '../lib/legacyPortfolioAssets'
+import { FaPinterest, FaTimes, FaArrowLeft, FaArrowRight } from 'react-icons/fa'
+import { FiFilter } from 'react-icons/fi'
 
-// ===== Import Portfolio Images =====
-import anniversary1 from "../assets/anniversary1.jpg";
-import anniversary2 from "../assets/anniversary2.jpg";
-import anniversary3 from "../assets/anniversary3.jpg";
-import anniversary4 from "../assets/anniversary4.jpg";
-import anniversary5 from "../assets/anniversary5.jpg";
+// Static fallback data shown before the existing projects are imported.
+const STATIC_PROJECTS = STATIC_PORTFOLIO_PROJECTS
 
-import birthday1 from "../assets/birthday1.jpg";
-import birthday2 from "../assets/birthday2.jpg";
-import birthday3 from "../assets/birthday3.jpg";
-import birthday4 from "../assets/birthday4.jpg";
-import birthday5 from "../assets/birthday5.jpg";
-import birthday6 from "../assets/birthday6.jpg";
-import birthday7 from "../assets/birthday7.jpg";
-
-import flyer1 from "../assets/flyer1.jpg";
-import flyer2 from "../assets/flyer2.jpg";
-import flyer3 from "../assets/flyer3.jpg";
-import flyer4 from "../assets/flyer4.jpg";
-import flyer5 from "../assets/flyer5.jpg";
-import flyer6 from "../assets/flyer6.jpg";
-import flyer7 from "../assets/flyer7.jpg";
-import flyer8 from "../assets/flyer8.jpg";
-
-import logo1 from "../assets/logo1.jpg";
-import logo2 from "../assets/logo2.jpg";
-import logo3 from "../assets/logo3.jpg";
-import logo4 from "../assets/logo4.jpg";
-import logo5 from "../assets/logo5.jpg";
-import logo6 from "../assets/logo6.jpg";
-
-// ===== Portfolio Data =====
-const portfolioData = {
-  Anniversary: [
-    anniversary1,
-    anniversary2,
-    anniversary3,
-    anniversary4,
-    anniversary5,
-  ],
-  Birthday: [
-    birthday1,
-    birthday2,
-    birthday3,
-    birthday4,
-    birthday5,
-    birthday6,
-    birthday7,
-  ],
-  Flyer: [flyer1, flyer2, flyer3, flyer4, flyer5, flyer6, flyer7, flyer8],
-  Logo: [logo1, logo2, logo3, logo4, logo5, logo6],
-};
-
-// ===== Reviews =====
-const reviews = [
-  {
-    text: `Honestly, working with Oracle’s Mind was smooth from start to finish. They really listened to what we wanted and brought it to life better than we imagined. The designs came out clean and very professional.`,
-    author: `— Chinedu Okafor, NovaEdge Solutions Ltd.`,
-  },
-  {
-    text: `I loved how patient and creative they were. I gave them a rough idea and they turned it into something beautiful. The logo and flyers came out really nice, and delivery was on time.`,
-    author: `— Aisha Bello, BelleAura Cosmetics`,
-  },
-  {
-    text: `These guys know their craft. Our social media designs look way better now, and people actually notice them. Communication was easy and revisions were not stressful at all.`,
-    author: `— Tunde Adeyemi, Axion Tech Hub`,
-  },
-  {
-    text: `Very creative and easy to work with. Oracle’s Mind helped us redesign our brand visuals, and the difference was clear immediately. Everything looked more modern and appealing.`,
-    author: `— Ifunanya Nwoye, PrimeNest Realty`,
-  },
-  {
-    text: `Good designs, no stories. What we asked for is exactly what we got — neat, bold, and professional. I’ll definitely recommend Oracle’s Mind to anyone who needs graphics.`,
-    author: `— Sadiq Lawal, Lawal Integrated Services`,
-  },
-  {
-    text: `You can tell they actually care about your project. They paid attention to details and made sure we were satisfied before final delivery. The whole process was stress-free.`,
-    author: `— Blessing Uche, GlowCart Enterprises`,
-  },
-  {
-    text: `Our brand looks more serious now. Since Oracle’s Mind handled our designs, people take us more seriously. The visuals are clean and consistent. Solid work overall.`,
-    author: `— Emeka Obi, Crestline Logistics`,
-  },
-];
+const REVIEWS = [
+  { text: `Honestly, working with Oracle's Mind was smooth from start to finish. They really listened to what we wanted and brought it to life better than we imagined.`, author: `— Chinedu Okafor, NovaEdge Solutions Ltd.` },
+  { text: `I loved how patient and creative they were. I gave them a rough idea and they turned it into something beautiful. The logo and flyers came out really nice.`, author: `— Aisha Bello, BelleAura Cosmetics` },
+  { text: `These guys know their craft. Our social media designs look way better now, and people actually notice them. Communication was easy and revisions were not stressful at all.`, author: `— Tunde Adeyemi, Axion Tech Hub` },
+  { text: `Very creative and easy to work with. Oracle's Mind helped us redesign our brand visuals, and the difference was clear immediately.`, author: `— Ifunanya Nwoye, PrimeNest Realty` },
+  { text: `Good designs, no stories. What we asked for is exactly what we got — neat, bold, and professional.`, author: `— Sadiq Lawal, Lawal Integrated Services` },
+]
 
 export default function Portfolio() {
-  const categories = Object.keys(portfolioData);
-  const [activeTab, setActiveTab] = useState("Anniversary");
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const [activeReview, setActiveReview] = useState(0);
+  const [projects, setProjects] = useState([])
+  const [categories, setCategories] = useState([])
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [loading, setLoading] = useState(true)
+  const [useStatic, setUseStatic] = useState(false)
 
-  const images = portfolioData[activeTab];
+  // For static fallback lightbox
+  const [lightboxProject, setLightboxProject] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const prevReview = () =>
-    setActiveReview((prev) => (prev - 1 + reviews.length) % reviews.length);
-  const nextReview = () =>
-    setActiveReview((prev) => (prev + 1) % reviews.length);
+  // Reviews
+  const [activeReview, setActiveReview] = useState(0)
+
+  useEffect(() => {
+    async function load() {
+      if (!IS_SUPABASE_CONFIGURED) {
+        setProjects(STATIC_PROJECTS)
+        setCategories(['All', ...STATIC_PROJECTS.map(p => p.category)])
+        setUseStatic(true)
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('portfolio_projects')
+        .select(`
+          id, title, slug, short_description, category, sort_order,
+          cover_image:portfolio_images!fk_cover_image(public_url, alt_text)
+        `)
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true })
+
+      if (error || !data?.length) {
+        // Fall back to static display
+        setProjects(STATIC_PROJECTS)
+        setCategories(['All', ...STATIC_PROJECTS.map(p => p.category)])
+        setUseStatic(true)
+      } else {
+        setProjects(data)
+        const cats = ['All', ...new Set(data.map(p => p.category).filter(Boolean))]
+        setCategories(cats)
+        setUseStatic(false)
+      }
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const filtered = activeCategory === 'All'
+    ? projects
+    : projects.filter(p => p.category === activeCategory)
+
+  const currentStaticGallery = lightboxProject?.gallery || []
 
   return (
-    <section className="relative bg-black text-white min-h-screen overflow-x-hidden">
-      {/* Hero Section */}
-      <div className="relative max-w-7xl mx-auto px-6 py-24 text-center">
-        <motion.h1
-          className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#045496] to-[#05d1ed]"
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 1 }}
+    <section className="relative bg-black text-white min-h-screen">
+      {/* Ambient glows */}
+      <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-[#045496]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-64 right-0 w-[300px] h-[300px] bg-[#05d1ed]/8 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* Hero */}
+      <div className="max-w-7xl mx-auto px-5 pt-24 pb-12 text-center relative z-10">
+        <motion.span
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="inline-block mb-4 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[#05d1ed] text-sm font-medium"
         >
           Creative Portfolio
+        </motion.span>
+        <motion.h1
+          className="text-5xl md:text-6xl font-extrabold gradient-text"
+          style={{ fontFamily: 'var(--font-heading)' }}
+          initial={{ y: -30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          Portfolio
         </motion.h1>
         <motion.p
-          className="mt-4 text-white/70 text-sm md:text-base"
+          className="mt-4 text-white/50 max-w-lg mx-auto"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          Explore a collection of my best anniversary, birthday, flyer, and logo
-          designs
+          A curated collection of creative work spanning graphic design, brand identity, and video editing.
         </motion.p>
       </div>
 
-      {/* Category Tabs */}
-      <div className="max-w-7xl mx-auto px-6 flex justify-center gap-6 mb-12 flex-wrap">
-        {categories.map((cat) => (
+      {/* Category filters */}
+      <div className="max-w-7xl mx-auto px-5 flex justify-center gap-3 mb-12 flex-wrap relative z-10">
+        {categories.map(cat => (
           <motion.button
             key={cat}
-            onClick={() => setActiveTab(cat)}
-            className={`px-6 py-2 rounded-full font-medium transition-all ${
-              activeTab === cat
-                ? "bg-gradient-to-r from-[#045496] to-[#05d1ed] text-black shadow-lg"
-                : "bg-white/10 text-white hover:bg-gradient-to-r hover:from-[#045496]/40 hover:to-[#05d1ed]/40"
+            onClick={() => setActiveCategory(cat)}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+              activeCategory === cat
+                ? 'bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-[0_2px_20px_rgba(5,209,237,0.25)]'
+                : 'bg-white/8 border border-white/10 text-white/65 hover:bg-white/12 hover:text-white'
             }`}
-            whileHover={{ scale: 1.05 }}
           >
             {cat}
           </motion.button>
         ))}
       </div>
 
-      {/* Portfolio Grid */}
-      <div className="max-w-7xl mx-auto px-6 grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {images.map((img, index) => (
-          <motion.div
-            key={index}
-            className="relative cursor-pointer overflow-hidden rounded-2xl border-2 border-transparent hover:border-gradient-to-r hover:from-[#045496] hover:to-[#05d1ed] shadow-lg hover:shadow-[#05d1ed]/50 transition-all"
-            onClick={() => {
-              setPhotoIndex(index);
-              setLightboxOpen(true);
-            }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <img
-              src={img}
-              alt={img}
-              className="w-full h-64 object-cover rounded-2xl"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#045496]/20 to-[#05d1ed]/20 opacity-0 hover:opacity-30 transition-all rounded-2xl"></div>
-          </motion.div>
-        ))}
+      {/* Projects grid */}
+      <div className="max-w-7xl mx-auto px-5 relative z-10">
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-white/40">No projects in this category yet.</p>
+          </div>
+        ) : useStatic ? (
+          // Static image grid (pre-migration)
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {filtered.map((project) =>
+              (project.gallery || [project.cover_image?.public_url]).map((imgSrc, imgIdx) => (
+                <motion.div
+                  key={`${project.id}-${imgIdx}`}
+                  whileHover={{ scale: 1.03 }}
+                  className="relative cursor-pointer overflow-hidden rounded-2xl border border-white/8 hover:border-cyan-500/30 shadow-lg group transition-all"
+                  onClick={() => { setLightboxProject(project); setLightboxIndex(imgIdx) }}
+                >
+                  <img src={typeof imgSrc === 'string' ? imgSrc : imgSrc} alt={project.title} className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-3 left-3">
+                      <p className="text-white text-xs font-medium">{project.category}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        ) : (
+          // CMS-driven project cards
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <AnimatePresence mode="wait">
+              {filtered.map((project, idx) => (
+                <motion.div
+                  key={project.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: idx * 0.04 }}
+                  whileHover={{ y: -6 }}
+                  className="group"
+                >
+                  <Link to={`/portfolio/${project.slug}`} className="block">
+                    <div className="relative overflow-hidden rounded-2xl border border-white/8 hover:border-cyan-500/30 transition-all">
+                      {project.cover_image?.public_url ? (
+                        <img
+                          src={project.cover_image.public_url}
+                          alt={project.cover_image.alt_text || project.title}
+                          className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-60 bg-white/5 flex items-center justify-center text-white/20 text-4xl">🎨</div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute bottom-3 left-3 right-3">
+                          <p className="text-white text-sm font-semibold truncate">{project.title}</p>
+                          {project.short_description && (
+                            <p className="text-white/60 text-xs mt-0.5 line-clamp-1">{project.short_description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 px-1">
+                      <p className="text-white font-medium text-sm">{project.title}</p>
+                      {project.category && <p className="text-white/40 text-xs mt-0.5">{project.category}</p>}
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
 
-      {/* Custom Lightbox */}
+      {/* Static lightbox */}
       <AnimatePresence>
-        {lightboxOpen && (
+        {lightboxProject && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <motion.div
-              className="relative w-full max-w-2xl max-h-[80vh] mx-6 rounded-xl overflow-hidden flex items-center justify-center"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-            >
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#045496] to-[#05d1ed] opacity-40 blur-3xl animate-pulse"></div>
-
-              <img
-                src={images[photoIndex]}
-                alt={images[photoIndex]}
-                className="relative max-w-full max-h-[80vh] object-contain rounded-xl z-10"
-              />
-
-              <button
-                className="absolute top-4 right-4 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition-transform z-20"
-                onClick={() => setLightboxOpen(false)}
-              >
-                <FaTimes />
-              </button>
-
-              <button
-                className="absolute top-1/2 left-4 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition-transform -translate-y-1/2 z-20"
-                onClick={() =>
-                  setPhotoIndex(
-                    (photoIndex + images.length - 1) % images.length,
-                  )
-                }
-              >
-                <FaArrowLeft />
-              </button>
-
-              <button
-                className="absolute top-1/2 right-4 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition-transform -translate-y-1/2 z-20"
-                onClick={() => setPhotoIndex((photoIndex + 1) % images.length)}
-              >
-                <FaArrowRight />
-              </button>
-            </motion.div>
+            <button className="absolute top-4 right-4 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition z-20"
+              onClick={() => setLightboxProject(null)}>
+              <FaTimes />
+            </button>
+            <button className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition z-20"
+              onClick={() => setLightboxIndex(i => (i - 1 + currentStaticGallery.length) % currentStaticGallery.length)}>
+              <FaArrowLeft />
+            </button>
+            <motion.img
+              key={lightboxIndex}
+              src={currentStaticGallery[lightboxIndex]}
+              alt={`${lightboxProject.title} ${lightboxIndex + 1}`}
+              className="max-w-full max-h-[85vh] object-contain rounded-xl"
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.25 }}
+            />
+            <button className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition z-20"
+              onClick={() => setLightboxIndex(i => (i + 1) % currentStaticGallery.length)}>
+              <FaArrowRight />
+            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-sm">
+              {lightboxIndex + 1} / {currentStaticGallery.length}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Pinterest CTA */}
-      <div className="max-w-7xl mx-auto px-6 text-center mt-12">
+      <div className="max-w-7xl mx-auto px-5 text-center mt-14 relative z-10">
         <a
           href="https://www.pinterest.com/OracleMind02/"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-[#045496] to-[#05d1ed] text-black hover:scale-105 transition"
+          className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-medium bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white hover:opacity-90 transition shadow-[0_4px_24px_rgba(5,209,237,0.2)]"
         >
           <FaPinterest className="text-xl" />
-          View More Designs
+          View More on Pinterest
         </a>
       </div>
 
-      {/* Reviews Carousel Section */}
-      <div className="max-w-4xl mx-auto px-6 py-24 text-center relative">
-        <h2 className="text-3xl md:text-4xl font-bold mb-12 bg-clip-text text-transparent bg-gradient-to-r from-[#045496] to-[#05d1ed]">
+      {/* Reviews Section */}
+      <div className="max-w-3xl mx-auto px-5 py-24 text-center relative z-10">
+        <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-12" style={{ fontFamily: 'var(--font-heading)' }}>
           Client Reviews
         </h2>
 
@@ -244,60 +259,43 @@ export default function Portfolio() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeReview}
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5 }}
-              className="p-8 rounded-2xl bg-white/10 backdrop-blur border border-white/15 mx-4"
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.4 }}
+              className="glass-card rounded-2xl p-8 mx-4"
             >
-              <p className="text-white/70 text-base md:text-lg mb-4">
-                "{reviews[activeReview].text}"
-              </p>
-              <p className="text-white/50 text-sm md:text-base font-semibold">
-                {reviews[activeReview].author}
-              </p>
+              <p className="text-white/65 text-base md:text-lg mb-5 italic">"{REVIEWS[activeReview].text}"</p>
+              <p className="text-[#05d1ed] text-sm font-semibold">{REVIEWS[activeReview].author}</p>
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation Arrows */}
-          <button
-            onClick={prevReview}
-            className="absolute left-0 top-1/2 -translate-y-1/2 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition"
-          >
+          <button onClick={() => setActiveReview(i => (i - 1 + REVIEWS.length) % REVIEWS.length)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition">
             <FaArrowLeft />
           </button>
-
-          <button
-            onClick={nextReview}
-            className="absolute right-0 top-1/2 -translate-y-1/2 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition"
-          >
+          <button onClick={() => setActiveReview(i => (i + 1) % REVIEWS.length)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-3 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:scale-110 transition">
             <FaArrowRight />
           </button>
         </div>
 
-        {/* Dots */}
-        <div className="flex justify-center mt-6 gap-2">
-          {reviews.map((_, idx) => (
-            <span
-              key={idx}
-              className={`w-3 h-3 rounded-full cursor-pointer transition-all ${
-                idx === activeReview ? "bg-cyan-400 scale-125" : "bg-white/30"
-              }`}
-              onClick={() => setActiveReview(idx)}
+        <div className="flex justify-center gap-2 mt-5">
+          {REVIEWS.map((_, idx) => (
+            <button key={idx} onClick={() => setActiveReview(idx)}
+              className={`w-2.5 h-2.5 rounded-full transition-all ${idx === activeReview ? 'bg-cyan-400 scale-125' : 'bg-white/25'}`}
+              aria-label={`Review ${idx + 1}`}
             />
           ))}
         </div>
 
-        {/* Get Your Project Started Button */}
         <div className="mt-12">
-          <a
-            href="/contact"
-            className="inline-block px-8 py-4 font-semibold text-lg rounded-2xl bg-gradient-to-r from-[#045496] to-[#05d1ed] text-black shadow-lg hover:scale-105 transition transform"
-          >
+          <Link to="/contact"
+            className="inline-block px-8 py-4 font-semibold text-lg rounded-2xl bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white shadow-lg hover:opacity-90 transition">
             Get Your Project Started
-          </a>
+          </Link>
         </div>
       </div>
     </section>
-  );
+  )
 }

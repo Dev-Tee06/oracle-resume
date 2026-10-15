@@ -1,295 +1,247 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import premiere from "../assets/skill6.png"; // Skill 1
-import illustrator from "../assets/skill4.png"; // Skill 2
-import photoshop from "../assets/skilll5.png"; // Skill 3
+import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import premiere from '../assets/skill6.png'
+import illustrator from '../assets/skill4.png'
+import photoshop from '../assets/skilll5.png'
 import {
   FaLightbulb,
   FaPencilRuler,
   FaPaintBrush,
   FaRedo,
-} from "react-icons/fa";
+} from 'react-icons/fa'
 
-const About = () => {
-  const creativeSkills = [
-    "Video Storytelling",
-    "Brand Design",
-    "Color Grading",
-    "Social Media Design",
-  ];
+const tools = [
+  { img: premiere,    name: 'Premiere Pro', desc: 'Video editing & post-production' },
+  { img: illustrator, name: 'Illustrator',  desc: 'Vector graphics & logo design' },
+  { img: photoshop,   name: 'Photoshop',    desc: 'Photo manipulation & compositing' },
+]
 
-  const tools = [
-    { img: premiere, name: "Premiere Pro" },
-    { img: illustrator, name: "Illustrator" },
-    { img: photoshop, name: "Photoshop" },
-  ];
+const workflowSteps = [
+  { icon: FaLightbulb,  label: 'Ideation & Strategy',     desc: 'Understanding your goals, audience, and creative direction.' },
+  { icon: FaPencilRuler, label: 'Design & Visualization', desc: 'Translating ideas into compelling visual concepts and mockups.' },
+  { icon: FaPaintBrush,  label: 'Refinement & Delivery',  desc: 'Polishing every detail to deliver pixel-perfect results.' },
+  { icon: FaRedo,        label: 'Feedback & Iteration',   desc: 'Collaborative revisions until the work exceeds expectations.' },
+]
 
-  const stats = [
-    { value: "150+", label: "Projects Completed" },
-    { value: "3+", label: "Years of Experience" },
-    { value: "40+", label: "Happy Clients" },
-  ];
+const strengths = [
+  { title: 'Visual Storytelling',       desc: 'Transforming narratives into memorable visual experiences.' },
+  { title: 'Attention to Detail',       desc: 'Precision in every pixel, color, and composition.' },
+  { title: 'Creative Problem Solving',  desc: 'Finding innovative solutions for complex design challenges.' },
+  { title: 'Brand Consistency',         desc: 'Maintaining cohesive identity across all materials.' },
+  { title: 'Time-Conscious Delivery',   desc: 'Respecting deadlines without compromising quality.' },
+  { title: 'Clear Communication',       desc: 'Transparent process and regular progress updates.' },
+]
 
-  const testimonials = [
-    {
-      text: "Honestly, working with Oracle’s Mind was smooth from start to finish. They really listened to what we wanted and brought it to life better than we imagined. The designs came out clean and very professional.",
-      author: "— Chinedu Okafor, NovaEdge Solutions Ltd.",
-    },
-    {
-      text: "I loved how patient and creative they were. I gave them a rough idea and they turned it into something beautiful. The logo and flyers came out really nice, and delivery was on time.",
-      author: "— Aisha Bello, BelleAura Cosmetics",
-    },
-    {
-      text: "These guys know their craft. Our social media designs look way better now, and people actually notice them. Communication was easy and revisions were not stressful at all.",
-      author: "— Tunde Adeyemi, Axion Tech Hub",
-    },
-  ];
+const testimonials = [
+  { text: `Honestly, working with Oracle's Mind was smooth from start to finish. They really listened to what we wanted and brought it to life better than we imagined.`, author: 'Chinedu Okafor', company: 'NovaEdge Solutions Ltd.' },
+  { text: `I loved how patient and creative they were. I gave them a rough idea and they turned it into something beautiful. The logo and flyers came out really nice.`, author: 'Aisha Bello', company: 'BelleAura Cosmetics' },
+  { text: `These guys know their craft. Our social media designs look way better now, and people actually notice them. Communication was easy and revisions were not stressful at all.`, author: 'Tunde Adeyemi', company: 'Axion Tech Hub' },
+]
 
-  const workflowSteps = [
-    {
-      icon: <FaLightbulb className="mx-auto text-cyan-400" size={28} />,
-      label: "Ideation & Strategy",
-    },
-    {
-      icon: <FaPencilRuler className="mx-auto text-cyan-400" size={28} />,
-      label: "Design & Visualization",
-    },
-    {
-      icon: <FaPaintBrush className="mx-auto text-cyan-400" size={28} />,
-      label: "Refinement & Delivery",
-    },
-    {
-      icon: <FaRedo className="mx-auto text-cyan-400" size={28} />,
-      label: "Feedback & Iteration",
-    },
-  ];
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+}
 
-  const strengths = [
-    "Visual Storytelling",
-    "Attention to Detail",
-    "Creative Problem Solving",
-    "Brand Consistency",
-    "Time-Conscious Delivery",
-    "Clear Client Communication",
-  ];
+const stagger = {
+  show: { transition: { staggerChildren: 0.1 } }
+}
 
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+export default function About() {
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
 
-  // Auto-rotate testimonials every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const container = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.12 } },
-  };
-  const item = { hidden: { opacity: 0, y: 25 }, show: { opacity: 1, y: 0 } };
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <section id="about" className="relative py-28 overflow-hidden bg-black">
+    <section className="relative bg-black overflow-hidden">
       {/* Ambient glows */}
-      <div className="absolute -top-40 right-0 w-[420px] h-[420px] bg-[#045496]/25 blur-[140px] rounded-full" />
-      <div className="absolute bottom-0 -left-40 w-[420px] h-[420px] bg-[#05d1ed]/25 blur-[140px] rounded-full" />
+      <div className="absolute -top-40 right-0 w-[500px] h-[500px] bg-[#045496]/15 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 -left-40 w-[500px] h-[500px] bg-[#05d1ed]/12 blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="relative max-w-5xl mx-auto px-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 35 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          viewport={{ once: true }}
-          className="text-center mb-20"
+      {/* ─── HERO ─── */}
+      <div className="max-w-6xl mx-auto px-5 pt-24 pb-16 text-center relative z-10">
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="inline-block mb-4 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-[#05d1ed] text-sm font-medium">
+          About Me
+        </motion.span>
+        <motion.h1
+          className="text-5xl md:text-6xl font-extrabold text-white"
+          style={{ fontFamily: 'var(--font-heading)' }}
+          initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8 }}
         >
-          <span className="inline-block mb-4 px-5 py-1.5 text-sm font-semibold tracking-wide text-[#05d1ed] bg-[#05d1ed]/10 rounded-full border border-white/10">
-            About Me
-          </span>
+          Designing Experiences That <span className="gradient-text">Speak & Inspire</span>
+        </motion.h1>
+      </div>
 
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-            Designing Experiences That{" "}
-            <span className="bg-gradient-to-r from-[#045496] to-[#05d1ed] bg-clip-text text-transparent">
-              Speak & Inspire
-            </span>
-          </h2>
-        </motion.div>
-
+      {/* ─── BIO ─── */}
+      <div className="max-w-4xl mx-auto px-5 relative z-10">
         <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 md:p-12 shadow-[0_0_60px_rgba(5,209,237,0.08)]"
+          initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}
+          className="glass-card rounded-3xl p-10 md:p-12 mb-20"
         >
-          {/* Intro */}
-          <motion.p
-            variants={item}
-            className="text-white/75 text-lg md:text-xl leading-relaxed max-w-3xl mb-14 text-center md:text-left"
-          >
-            I’m a Creative Artist and video editor who transforms ideas into
+          <motion.p variants={fadeUp} className="text-white/70 text-lg md:text-xl leading-relaxed">
+            I'm a Creative Artist and video editor who transforms ideas into
             visually compelling stories. I blend strategy, creativity, and
             modern design tools to craft visuals that elevate brands and leave
             lasting impressions.
           </motion.p>
-
-          {/* Tools Section */}
-          <motion.div variants={item} className="mb-14">
-            <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              Tools I Excel At
-            </h3>
-            <div className="flex flex-wrap justify-center gap-8">
-              {tools.map((tool, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{
-                    scale: 1.1,
-                    boxShadow: "0 0 25px #05d1ed, 0 0 40px #05d1ed",
-                  }}
-                  className="flex flex-col items-center w-24 md:w-28"
-                >
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-cyan-400 p-2 flex items-center justify-center shadow-[0_0_15px_rgba(5,209,237,0.3)] bg-black">
-                    <img
-                      src={tool.img}
-                      alt={tool.name}
-                      className="w-full h-full object-contain rounded-full"
-                    />
-                  </div>
-                  <p className="mt-2 text-cyan-400 font-semibold text-center">
-                    {tool.name}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Stats Section */}
-          <motion.div variants={item} className="mb-14">
-            <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              Experience & Achievements
-            </h3>
-            <div className="flex flex-wrap justify-center gap-6">
-              {stats.map((stat, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ scale: 1.05 }}
-                  className="text-center backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl py-4 px-6 w-36"
-                >
-                  <p className="text-2xl md:text-3xl font-extrabold text-cyan-400">
-                    {stat.value}
-                  </p>
-                  <p className="mt-1 text-xs md:text-sm text-slate-300">
-                    {stat.label}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Workflow / Process */}
-          <motion.div variants={item} className="mb-14">
-            <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              Workflow / Process
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 text-center">
-              {workflowSteps.map((step, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ scale: 1.05 }}
-                  className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl p-6 flex flex-col items-center gap-3"
-                >
-                  {step.icon}
-                  <p className="text-white/80 font-semibold">{step.label}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Strengths Section */}
-          <motion.div variants={item} className="mb-14">
-            <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              What I Bring to the Table
-            </h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-white/70">
-              {strengths.map((strength, i) => (
-                <motion.li
-                  key={i}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="flex items-center gap-3 group"
-                >
-                  <span className="w-3 h-3 rounded-full bg-[#05d1ed] group-hover:shadow-[0_0_10px_#05d1ed] transition" />
-                  {strength}
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Testimonial Carousel */}
-          <motion.div
-            variants={item}
-            className="mb-14 relative max-w-3xl mx-auto"
-          >
-            <h3 className="text-2xl font-semibold text-white mb-6 text-center">
-              Testimonials
-            </h3>
-            <AnimatePresence exitBeforeEnter>
-              <motion.div
-                key={currentTestimonial}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.6 }}
-                className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 text-center text-white/80"
-              >
-                <p className="italic mb-4">
-                  "{testimonials[currentTestimonial].text}"
-                </p>
-                <p className="font-semibold text-cyan-400">
-                  {testimonials[currentTestimonial].author}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Carousel Dots */}
-            <div className="flex justify-center mt-4 gap-4">
-              {testimonials.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentTestimonial(i)}
-                  className={`w-3 h-3 rounded-full transition ${
-                    i === currentTestimonial
-                      ? "bg-cyan-400 shadow-[0_0_10px_#05d1ed]"
-                      : "bg-white/30"
-                  }`}
-                />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* CTA Button: Get Your Project Started */}
-          <motion.div
-            className="flex justify-center mb-28"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            <a
-              href="#contact"
-              className="w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold hover:bg-cyan-400 transition text-lg text-center
-               shadow-md sm:shadow-none sm:hover:shadow-[0_0_20px_#05d1ed,0_0_40px_#05d1ed]"
-            >
-              Get Your Project Started
-            </a>
-          </motion.div>
+          <motion.blockquote variants={fadeUp} className="mt-6 pl-4 border-l-2 border-[#05d1ed]/50">
+            <p className="text-white/45 italic text-sm">"Every design begins with insight — clarity follows."</p>
+          </motion.blockquote>
         </motion.div>
       </div>
-    </section>
-  );
-};
 
-export default About;
+      {/* ─── TOOLS ─── */}
+      <div className="max-w-4xl mx-auto px-5 mb-24 relative z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-center mb-10">
+          <span className="text-[#05d1ed] text-sm font-medium uppercase tracking-wider">Tools & Expertise</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mt-2" style={{ fontFamily: 'var(--font-heading)' }}>
+            Software I <span className="gradient-text">Excel At</span>
+          </h2>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-3 gap-6">
+          {tools.map((tool, idx) => (
+            <motion.div
+              key={tool.name}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1 }}
+              whileHover={{ y: -6 }}
+              className="glass-card rounded-2xl p-6 text-center hover:border-cyan-500/25 transition-all group"
+            >
+              <div className="w-20 h-20 mx-auto rounded-2xl bg-black border border-white/10 group-hover:border-cyan-500/30 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(5,209,237,0.12)] transition-all">
+                <img src={tool.img} alt={tool.name} className="w-12 h-12 object-contain" />
+              </div>
+              <h3 className="text-white font-semibold mb-1">{tool.name}</h3>
+              <p className="text-white/45 text-xs">{tool.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── WORKFLOW ─── */}
+      <div className="max-w-5xl mx-auto px-5 mb-24 relative z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-center mb-10">
+          <span className="text-[#05d1ed] text-sm font-medium uppercase tracking-wider">Creative Process</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mt-2" style={{ fontFamily: 'var(--font-heading)' }}>
+            How I <span className="gradient-text">Work</span>
+          </h2>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {workflowSteps.map((step, idx) => (
+            <motion.div
+              key={step.label}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1 }}
+              whileHover={{ y: -4 }}
+              className="glass-card rounded-2xl p-6 text-center hover:border-cyan-500/25 transition-all group"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-[#05d1ed]/10 border border-[#05d1ed]/20 flex items-center justify-center mb-4">
+                <step.icon className="text-[#05d1ed]" size={22} />
+              </div>
+              <span className="text-[#05d1ed]/40 text-xs font-bold uppercase tracking-widest">Step {idx + 1}</span>
+              <h3 className="text-white font-semibold mt-2 text-sm">{step.label}</h3>
+              <p className="text-white/45 text-xs mt-2 leading-relaxed">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── STRENGTHS ─── */}
+      <div className="max-w-4xl mx-auto px-5 mb-24 relative z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-center mb-10">
+          <span className="text-[#05d1ed] text-sm font-medium uppercase tracking-wider">Core Strengths</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mt-2" style={{ fontFamily: 'var(--font-heading)' }}>
+            What I <span className="gradient-text">Bring</span>
+          </h2>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          {strengths.map((s, idx) => (
+            <motion.div
+              key={s.title}
+              initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.08 }}
+              className="glass-card rounded-xl p-5 flex items-start gap-4 hover:border-cyan-500/20 transition group"
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-[#05d1ed] mt-1.5 shrink-0 group-hover:shadow-[0_0_10px_#05d1ed] transition" />
+              <div>
+                <h3 className="text-white font-semibold text-sm">{s.title}</h3>
+                <p className="text-white/45 text-xs mt-1 leading-relaxed">{s.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TESTIMONIALS ─── */}
+      <div className="max-w-3xl mx-auto px-5 pb-24 text-center relative z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="mb-10">
+          <span className="text-[#05d1ed] text-sm font-medium uppercase tracking-wider">Testimonials</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mt-2" style={{ fontFamily: 'var(--font-heading)' }}>
+            What Clients <span className="gradient-text">Say</span>
+          </h2>
+        </motion.div>
+
+        <div className="relative min-h-[200px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTestimonial}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="glass-card rounded-2xl p-8"
+            >
+              <svg className="w-8 h-8 text-[#05d1ed]/20 mb-4 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+              </svg>
+              <p className="text-white/65 text-base md:text-lg leading-relaxed italic mb-5">
+                "{testimonials[currentTestimonial].text}"
+              </p>
+              <p className="text-[#05d1ed] font-semibold text-sm">{testimonials[currentTestimonial].author}</p>
+              <p className="text-white/40 text-xs mt-0.5">{testimonials[currentTestimonial].company}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Dots */}
+        <div className="flex justify-center gap-2 mt-5">
+          {testimonials.map((_, i) => (
+            <button key={i} onClick={() => setCurrentTestimonial(i)}
+              className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentTestimonial ? 'bg-cyan-400 scale-125' : 'bg-white/25'}`}
+              aria-label={`Testimonial ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div className="mt-14">
+          <Link
+            to="/contact"
+            className="inline-block px-8 py-4 rounded-full bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white font-semibold text-lg hover:opacity-90 transition shadow-[0_4px_30px_rgba(5,209,237,0.3)]"
+          >
+            Get Your Project Started
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}

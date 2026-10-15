@@ -1,1 +1,118 @@
 @import "tailwindcss";
+
+/* ======================================================
+   ORACLE'S MIND — Global Design System
+   ====================================================== */
+
+/* CSS Custom Properties */
+:root {
+  --color-brand-deep:  #045496;
+  --color-brand-cyan:  #05d1ed;
+  --color-bg-black:    #000000;
+  --color-bg-near:     #06080f;
+  --color-bg-card:     #0f1729;
+  --color-text-white:  #ffffff;
+  --color-text-muted:  rgba(255,255,255,0.60);
+  --color-text-dim:    rgba(255,255,255,0.35);
+  --font-heading: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+}
+
+/* ======================================================
+   Base
+   ====================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-black);
+  color: var(--color-text-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* ======================================================
+   Scrollbar
+   ====================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(5,209,237,0.35);
+}
+
+/* ======================================================
+   Focus styles
+   ====================================================== */
+:focus-visible {
+  outline: 2px solid var(--color-brand-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ======================================================
+   Selection color
+   ====================================================== */
+::selection {
+  background: rgba(5,209,237,0.25);
+  color: white;
+}
+
+/* ======================================================
+   Reduced Motion
+   ====================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ======================================================
+   Gradient Text Utility
+   ====================================================== */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-brand-deep), var(--color-brand-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ======================================================
+   Glass Card Utility
+   ====================================================== */
+.glass-card {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ======================================================
+   Admin — prevent public nav from showing
+   ====================================================== */
+.admin-view .public-nav {
+  display: none;
+}
