@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
-import { PageLoader } from '../components/LoadingSpinner'
+import { PageLoader } from './LoadingSpinner'
 import { FiArrowLeft, FiExternalLink, FiGithub, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { FaPinterest } from 'react-icons/fa'
 
