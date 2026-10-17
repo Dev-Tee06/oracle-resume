@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase, STORAGE_BUCKET } from '../../lib/supabase'
-import { slugify, generateStoragePath } from '../../lib/utils'
+import { slugify, generateStoragePath, MAX_VIDEO_SIZE_BYTES, VIDEO_BUCKET } from '../../lib/utils'
 import ImageUpload, { GalleryUpload } from '../../Components/ImageUpload'
 import ConfirmDialog from '../../Components/ConfirmDialog'
 import { PageLoader } from '../../Components/LoadingSpinner'
@@ -62,6 +62,16 @@ export default function ProjectForm() {
   const [removeCover, setRemoveCover] = useState(false)
 
   const [galleryImages, setGalleryImages] = useState([])    // { id?, storage_path?, public_url?, alt_text, sort_order, file?, preview?, isNew? }
+  const [existingVideo, setExistingVideo] = useState(null)
+  const [videoFile, setVideoFile] = useState(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null)
+  const [removeVideo, setRemoveVideo] = useState(false)
+  const [videoError, setVideoError] = useState(null)
+  const videoInput = useRef(null)
+
+  useEffect(() => () => {
+    if (videoPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(videoPreviewUrl)
+  }, [videoPreviewUrl])
 
   // Load existing project
   const loadProject = useCallback(async () => {
@@ -109,6 +119,23 @@ export default function ProjectForm() {
       .order('sort_order', { ascending: true })
 
     setGalleryImages(gallery || [])
+
+    const { data: savedVideo, error: videoLoadError } = await supabase
+      .from('portfolio_videos')
+      .select('*')
+      .eq('project_id', id)
+      .maybeSingle()
+    if (videoLoadError) {
+      setVideoError(`Video management is unavailable: ${videoLoadError.message}. Apply migration 007_project_videos.sql.`)
+      setExistingVideo(null)
+    } else if (savedVideo) {
+      const { data: signedVideo } = await supabase.storage
+        .from(VIDEO_BUCKET)
+        .createSignedUrl(savedVideo.storage_path, 3600)
+      setExistingVideo({ ...savedVideo, playbackUrl: signedVideo?.signedUrl || null })
+    } else {
+      setExistingVideo(null)
+    }
     setLoading(false)
   }, [id, isEdit])
 
@@ -137,6 +164,36 @@ export default function ProjectForm() {
     try { new URL(url); return true } catch { return false }
   }
 
+  async function handleVideoSelection(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (videoFile || removeVideo) markDirty()
+    setVideoFile(null)
+    setVideoPreviewUrl(null)
+    setRemoveVideo(false)
+    setVideoError(null)
+
+    if (file.size > MAX_VIDEO_SIZE_BYTES) {
+      setVideoError('Video exceeds the 3 MB limit. Please select a video that is 3 MB or smaller.')
+      return
+    }
+    if (!file.name.toLowerCase().endsWith('.mp4') || (file.type && file.type !== 'video/mp4')) {
+      setVideoError('Unsupported video format. Please upload an MP4 video.')
+      return
+    }
+    const mp4Brand = await file.slice(4, 8).text()
+    if (mp4Brand !== 'ftyp') {
+      setVideoError('This file does not appear to contain a valid MP4 video.')
+      return
+    }
+
+    setVideoFile(file)
+    setVideoPreviewUrl(URL.createObjectURL(file))
+    setRemoveVideo(false)
+    markDirty()
+  }
+
   async function uploadImage(file, projectId) {
     const path = generateStoragePath(projectId, file.name)
     const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: false })
@@ -148,10 +205,19 @@ export default function ProjectForm() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
+    if (videoFile && videoError) {
+      setGlobalError('Preview the selected video successfully or choose another MP4 before saving.')
+      return
+    }
+    if (videoFile && videoFile.size > MAX_VIDEO_SIZE_BYTES) {
+      setVideoError('Video exceeds the 3 MB limit. Please select a video that is 3 MB or smaller.')
+      return
+    }
 
     setSaving(true)
     setGlobalError(null)
     setSuccessMsg(null)
+    let uploadedVideoPath = null
 
     const effectiveCategory = category === 'Other' ? customCategory : category
     const techArray = technologies.split(',').map(t => t.trim()).filter(Boolean)
@@ -198,6 +264,7 @@ export default function ProjectForm() {
 
       // Handle cover image
       let newCoverId = isEdit ? existingCoverId : null
+      const replacedCoverId = coverFile && !removeCover ? existingCoverId : null
 
       if (removeCover && existingCoverId) {
         // Remove old cover
@@ -225,6 +292,24 @@ export default function ProjectForm() {
         .eq('id', projectId)
       if (coverUpdateError) throw new Error(coverUpdateError.message)
 
+      // A replaced cover is no longer the project's cover or a gallery image.
+      // Clean up its row and stored file only after the new cover is linked.
+      if (replacedCoverId && replacedCoverId !== newCoverId) {
+        const { data: oldCover } = await supabase
+          .from('portfolio_images')
+          .select('storage_path')
+          .eq('id', replacedCoverId)
+          .single()
+        const { error: oldCoverDeleteError } = await supabase
+          .from('portfolio_images')
+          .delete()
+          .eq('id', replacedCoverId)
+        if (oldCoverDeleteError) throw new Error(oldCoverDeleteError.message)
+        if (oldCover?.storage_path) {
+          await supabase.storage.from(STORAGE_BUCKET).remove([oldCover.storage_path])
+        }
+      }
+
       // Handle gallery images
       // Upload new ones
       const newGalleryItems = galleryImages.filter(img => img.isNew && img.file)
@@ -249,8 +334,45 @@ export default function ProjectForm() {
         if (galleryUpdateError) throw new Error(galleryUpdateError.message)
       }
 
+      if (videoFile) {
+        const videoPath = generateStoragePath(projectId, videoFile.name)
+        const { error: videoUploadError } = await supabase.storage
+          .from(VIDEO_BUCKET)
+          .upload(videoPath, videoFile, { upsert: false, contentType: 'video/mp4' })
+        if (videoUploadError) throw new Error(`Video upload failed: ${videoUploadError.message}`)
+        uploadedVideoPath = videoPath
+
+        const { error: videoSaveError } = await supabase
+          .from('portfolio_videos')
+          .upsert({
+            project_id: projectId,
+            storage_path: videoPath,
+            file_name: videoFile.name,
+            mime_type: 'video/mp4',
+            file_size: videoFile.size,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'project_id' })
+        if (videoSaveError) throw new Error(`Video details could not be saved: ${videoSaveError.message}`)
+
+        if (existingVideo?.storage_path && existingVideo.storage_path !== videoPath) {
+          await supabase.storage.from(VIDEO_BUCKET).remove([existingVideo.storage_path])
+        }
+        uploadedVideoPath = null
+      } else if (removeVideo && existingVideo) {
+        const { error: videoDeleteError } = await supabase
+          .from('portfolio_videos')
+          .delete()
+          .eq('id', existingVideo.id)
+        if (videoDeleteError) throw new Error(`Video could not be removed: ${videoDeleteError.message}`)
+        await supabase.storage.from(VIDEO_BUCKET).remove([existingVideo.storage_path])
+      }
+
       setIsDirty(false)
       setSuccessMsg(isEdit ? 'Project updated successfully.' : 'Project created successfully.')
+      setVideoFile(null)
+      setVideoPreviewUrl(null)
+      setRemoveVideo(false)
+      setVideoError(null)
 
       if (!isEdit) {
         setTimeout(() => navigate(`/admin/projects/${projectId}/edit`), 1000)
@@ -258,6 +380,7 @@ export default function ProjectForm() {
         loadProject()
       }
     } catch (err) {
+      if (uploadedVideoPath) await supabase.storage.from(VIDEO_BUCKET).remove([uploadedVideoPath])
       setGlobalError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setSaving(false)
@@ -440,6 +563,87 @@ export default function ProjectForm() {
                 onAltChange={handleGalleryAltChange}
               />
             </div>
+
+            {/* Project video */}
+            <div className="bg-[#0f1729] border border-white/8 rounded-2xl p-6 space-y-4">
+              <div>
+                <h2 className="text-white font-semibold text-sm uppercase tracking-wider opacity-60">Project Video</h2>
+                <p className="text-white/40 text-xs mt-2">MP4 only · maximum 3 MB (3,000,000 bytes). Video stays separate from the cover and gallery.</p>
+              </div>
+              <input
+                ref={videoInput}
+                type="file"
+                accept="video/mp4,.mp4"
+                onChange={handleVideoSelection}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => videoInput.current?.click()}
+                disabled={saving}
+                className="px-4 py-2 rounded-xl border border-white/10 text-white/75 hover:bg-white/5 transition text-sm disabled:opacity-50"
+              >
+                {videoFile || existingVideo ? 'Choose or replace video' : 'Upload Video'}
+              </button>
+
+              {videoFile && (
+                <div className="space-y-3">
+                  <p className="text-white/60 text-xs break-all">
+                    Selected: {videoFile.name} · {(videoFile.size / 1_000_000).toFixed(2)} MB
+                  </p>
+                  <video
+                    src={videoPreviewUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onError={() => setVideoError('The selected video could not be played. Choose a valid MP4 file.')}
+                    className="w-full max-h-64 rounded-xl bg-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setVideoFile(null); setVideoPreviewUrl(null); setVideoError(null); markDirty() }}
+                    className="text-xs text-white/50 hover:text-white"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              )}
+
+              {existingVideo && !videoFile && !removeVideo && (
+                <div className="space-y-3">
+                  <p className="text-white/60 text-xs break-all">
+                    Current: {existingVideo.file_name} · {(existingVideo.file_size / 1_000_000).toFixed(2)} MB
+                  </p>
+                  {existingVideo.playbackUrl ? (
+                    <video
+                      src={existingVideo.playbackUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      onError={() => setVideoError('The saved video could not be played. You can replace or remove it.')}
+                      className="w-full max-h-64 rounded-xl bg-black"
+                    />
+                  ) : (
+                    <p className="text-amber-300/80 text-xs">Preview unavailable. You can replace or remove this video.</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setRemoveVideo(true); setVideoError(null); markDirty() }}
+                    className="text-xs text-red-400/80 hover:text-red-300"
+                  >
+                    Remove video on save
+                  </button>
+                </div>
+              )}
+
+              {removeVideo && (
+                <div className="flex items-center gap-3 text-xs">
+                  <p className="text-amber-300/80">Video will be removed when you save.</p>
+                  <button type="button" onClick={() => { setRemoveVideo(false); markDirty() }} className="text-white/60 hover:text-white">Undo</button>
+                </div>
+              )}
+              {videoError && <p role="alert" className="text-red-400 text-xs">{videoError}</p>}
+            </div>
           </div>
 
           {/* Right column: sidebar */}
@@ -478,7 +682,7 @@ export default function ProjectForm() {
                 className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-[#045496] to-[#05d1ed] text-white hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <FiSave className="w-4 h-4" />}
-                {saving ? 'Saving…' : (status === 'published' ? 'Save & Publish' : 'Save Draft')}
+                {saving ? (videoFile ? 'Uploading video…' : 'Saving…') : (status === 'published' ? 'Save & Publish' : 'Save Draft')}
               </button>
             </div>
 

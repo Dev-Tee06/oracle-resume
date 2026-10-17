@@ -29,6 +29,8 @@ export function timeAgo(dateString) {
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 export const MAX_IMAGE_SIZE_MB = 10
 export const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+export const MAX_VIDEO_SIZE_BYTES = 3_000_000
+export const VIDEO_BUCKET = 'portfolio-videos'
 
 export function validateImageFile(file) {
   if (!file) return 'No file selected.'

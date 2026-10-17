@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
+import { VIDEO_BUCKET } from '../lib/utils'
 import { PageLoader } from './LoadingSpinner'
 import { FiArrowLeft, FiExternalLink, FiGithub, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { FaPinterest } from 'react-icons/fa'
@@ -12,6 +13,8 @@ export default function ProjectDetail() {
   const navigate = useNavigate()
   const [project, setProject] = useState(null)
   const [images, setImages] = useState([])
+  const [projectVideo, setProjectVideo] = useState(null)
+  const [videoPlaybackError, setVideoPlaybackError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [lightbox, setLightbox] = useState(null) // index of open image
@@ -31,6 +34,8 @@ export default function ProjectDetail() {
 
       if (error || !proj) { setNotFound(true); setLoading(false); return }
       setProject(proj)
+      setProjectVideo(null)
+      setVideoPlaybackError(false)
 
       const { data: imgs } = await supabase
         .from('portfolio_images')
@@ -38,7 +43,24 @@ export default function ProjectDetail() {
         .eq('project_id', proj.id)
         .order('sort_order', { ascending: true })
 
-      setImages(imgs || [])
+      // The cover is rendered as the hero. Keep only additional project media
+      // in the gallery, including for legacy rows that reference the same URL
+      // through a different image record.
+      setImages((imgs || []).filter(img =>
+        img.id !== proj.cover_image?.id && img.public_url !== proj.cover_image?.public_url
+      ))
+
+      const { data: savedVideo } = await supabase
+        .from('portfolio_videos')
+        .select('id, storage_path, file_name')
+        .eq('project_id', proj.id)
+        .maybeSingle()
+      if (savedVideo) {
+        const { data: signedVideo } = await supabase.storage
+          .from(VIDEO_BUCKET)
+          .createSignedUrl(savedVideo.storage_path, 3600)
+        setProjectVideo({ ...savedVideo, playbackUrl: signedVideo?.signedUrl || null })
+      }
       setLoading(false)
     }
     load()
@@ -71,12 +93,6 @@ export default function ProjectDetail() {
   )
 
   const techList = project.technologies?.filter(Boolean) || []
-  const galleryImages = images.filter(img => img.id !== project.cover_image?.id)
-  const allImages = [
-    ...(project.cover_image ? [project.cover_image] : []),
-    ...galleryImages,
-  ]
-
   return (
     <div className="bg-black min-h-screen">
       {/* Hero image */}
@@ -172,12 +188,34 @@ export default function ProjectDetail() {
             </div>
           )}
 
+          {/* Project video */}
+          {projectVideo && (
+            <div className="mb-12">
+              <h2 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Project Video</h2>
+              {projectVideo.playbackUrl && !videoPlaybackError ? (
+                <video
+                  src={projectVideo.playbackUrl}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  onError={() => setVideoPlaybackError(true)}
+                  aria-label={`${project.title} project video`}
+                  className="w-full max-h-[70vh] rounded-2xl border border-white/10 bg-black"
+                />
+              ) : (
+                <p role="status" className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/50">
+                  This video is currently unavailable.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Image gallery */}
-          {allImages.length > 1 && (
+          {images.length > 0 && (
             <div className="mb-12">
               <h2 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-heading)' }}>Gallery</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {allImages.map((img, idx) => (
+                {images.map((img, idx) => (
                   <motion.div
                     key={img.id}
                     whileHover={{ scale: 1.02 }}
@@ -226,7 +264,7 @@ export default function ProjectDetail() {
           </button>
 
           <button
-            onClick={() => setLightbox(i => (i - 1 + allImages.length) % allImages.length)}
+            onClick={() => setLightbox(i => (i - 1 + images.length) % images.length)}
             className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition z-10"
             aria-label="Previous image"
           >
@@ -234,13 +272,13 @@ export default function ProjectDetail() {
           </button>
 
           <img
-            src={allImages[lightbox]?.public_url}
-            alt={allImages[lightbox]?.alt_text || `Image ${lightbox + 1}`}
+            src={images[lightbox]?.public_url}
+            alt={images[lightbox]?.alt_text || `Image ${lightbox + 1}`}
             className="max-w-full max-h-[85vh] object-contain rounded-xl"
           />
 
           <button
-            onClick={() => setLightbox(i => (i + 1) % allImages.length)}
+            onClick={() => setLightbox(i => (i + 1) % images.length)}
             className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition z-10"
             aria-label="Next image"
           >
@@ -248,7 +286,7 @@ export default function ProjectDetail() {
           </button>
 
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-sm">
-            {lightbox + 1} / {allImages.length}
+            {lightbox + 1} / {images.length}
           </div>
         </motion.div>
       )}
